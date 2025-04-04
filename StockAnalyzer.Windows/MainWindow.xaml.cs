@@ -1,10 +1,6 @@
-﻿using Newtonsoft.Json;
-using StockAnalyzer.Core;
-using StockAnalyzer.Core.Domain;
+﻿using StockAnalyzer.Core;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Navigation;
@@ -13,7 +9,7 @@ namespace StockAnalyzer.Windows;
 
 public partial class MainWindow : Window
 {
-    private static string API_URL = "https://ps-async.fekberg.com/api/stocks";
+    //private static string API_URL = "https://ps-async.fekberg.com/api/stocks";
     private Stopwatch stopwatch = new Stopwatch();
 
     public MainWindow()
@@ -23,11 +19,19 @@ public partial class MainWindow : Window
 
     private async void Search_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         BeforeLoadingStockData();
 
         await GetStocks();
 
         AfterLoadingStockData();
+        }
+        catch (Exception ex)
+        {
+            // print exception on console
+            Console.WriteLine(ex);  
+        }
     }
 
     private async Task GetStocks()
