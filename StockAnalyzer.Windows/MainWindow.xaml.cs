@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -29,7 +30,7 @@ public partial class MainWindow : Window
         {
             BeforeLoadingStockData();
 
-            await FillStocks(StockIdentifier.Text);
+            await FillStocksAsync(StockIdentifier.Text);
         }
         catch (Exception ex)
         {
@@ -42,8 +43,20 @@ public partial class MainWindow : Window
         }
     }
 
+    // async to sync method: it should be avoided; it could produce deadlock
+    private void FillStocks(string stockIdentifier)
+    {
+        FillStocksAsync(stockIdentifier).Wait();
+    }
+    
+    // async to sync method: it should be avoided; it could produce deadlock
+    private IList<StockPrice> GetStocks(string stockIdentifier)
+    {
+        return GetStocksAsync(stockIdentifier).GetAwaiter().GetResult();
+    }
+
     // return a Task from an asynchronous method without result
-    private async Task FillStocks(string stockIdentifier)
+    private async Task FillStocksAsync(string stockIdentifier)
     {
         try
         {
@@ -60,7 +73,7 @@ public partial class MainWindow : Window
     }
     
     // return a Task<T> from an asynchronous method with result T
-    private async Task<IList<StockPrice>> GetStocks(string stockIdentifier)
+    private async Task<IList<StockPrice>> GetStocksAsync(string stockIdentifier)
     {
         try
         {
@@ -162,6 +175,42 @@ public partial class MainWindow : Window
     {
         int[] output = [1, 2];
         return Task.FromResult(output.Sum());
+    }
+
+    // async stream
+    private async IAsyncEnumerable<int> ReadIntsAsync([EnumeratorCancellation] CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            await Task.Delay(10);
+
+            // ...
+            yield return 0;
+        }
+    }
+
+    // disposible class 
+    private async Task DoSomethingDisposible()
+    {
+        await using var service = new AwesomeService();
+    }
+
+    // parallel foreach 
+    private async Task<int> RunForEach()
+    {
+        var threadSafeList = new ConcurrentBag<int>();
+
+        var task1 = Task.Run(() => 1);
+        var task2 = Task.Run(() => 5);
+        var task3 = Task.Run(() => 10);
+        var task4 = Task.Run(() => 20);
+        var task5 = Task.Run(() => 50);
+
+        Parallel.ForEach([task1, task2, task3, task4, task5], async (task) => threadSafeList.Add(await task));
+
+        await Task.Delay(10);
+
+        return threadSafeList.Sum();
     }
 
     private void BeforeLoadingStockData()
